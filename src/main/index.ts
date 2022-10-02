@@ -1,6 +1,7 @@
-import { app, shell, BrowserWindow } from 'electron'
+import { app, shell, BrowserWindow, ipcMain, dialog } from 'electron'
 import * as path from 'path'
 import { electronApp, optimizer, is } from '@electron-toolkit/utils'
+import fg from 'fast-glob'
 
 function createWindow(): void {
   // Create the browser window.
@@ -14,10 +15,24 @@ function createWindow(): void {
           icon: path.join(__dirname, '../../build/icon.png')
         }
       : {}),
+    roundedCorners: true,
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
-      sandbox: false
+      sandbox: false,
+      nodeIntegration: true,
+      nodeIntegrationInWorker: true,
+      webSecurity: false
     }
+  })
+  ipcMain.handle('browse', async (e) => {
+    const path = await dialog.showOpenDialog({
+      properties: ['openDirectory']
+    })
+
+    const pattern = `${path.filePaths[0]}/**/*.(jpg|jpeg|png)`
+    const entries = await fg([pattern], { dot: true })
+
+    return entries
   })
 
   mainWindow.on('ready-to-show', () => {
